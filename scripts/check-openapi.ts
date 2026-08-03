@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -25,8 +25,18 @@ function normalizeOpenApi(content: string): string {
 }
 
 function main(): void {
+  let baseline: string;
+  try {
+    // Snapshot before generation overwrites the working-tree artifact.
+    baseline = readFileSync(committedPath, 'utf8');
+  } catch {
+    console.error(
+      `Committed OpenAPI spec not found at ${committedPath}. Run pnpm openapi:generate and commit the result.`,
+    );
+    process.exit(1);
+  }
+
   const tempDir = mkdtempSync(join(tmpdir(), 'openapi-check-'));
-  const generatedPath = join(tempDir, 'openapi.json');
 
   try {
     execSync('pnpm build', {
@@ -38,23 +48,12 @@ function main(): void {
       env: process.env,
     });
 
-    const generated = readFileSync(join(process.cwd(), 'openapi', 'openapi.json'), 'utf8');
-    writeFileSync(generatedPath, generated, 'utf8');
-
-    let committed: string;
-    try {
-      committed = readFileSync(committedPath, 'utf8');
-    } catch {
-      console.error(
-        `Committed OpenAPI spec not found at ${committedPath}. Run pnpm openapi:generate and commit the result.`,
-      );
-      process.exit(1);
-    }
+    const generated = readFileSync(committedPath, 'utf8');
 
     const normalizedGenerated = normalizeOpenApi(generated);
-    const normalizedCommitted = normalizeOpenApi(committed);
+    const normalizedBaseline = normalizeOpenApi(baseline);
 
-    if (normalizedGenerated !== normalizedCommitted) {
+    if (normalizedGenerated !== normalizedBaseline) {
       console.error(
         'OpenAPI spec is out of date. Run `pnpm openapi:generate` and commit openapi/openapi.json.',
       );

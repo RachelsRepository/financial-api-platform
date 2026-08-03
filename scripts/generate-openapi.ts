@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { generateKeyPair, exportJWK } from 'jose';
+import { generateKeyPair, exportJWK, importJWK, type JWK } from 'jose';
 import { type Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -23,6 +23,40 @@ function loadAppModule(): Type<unknown> {
   return loaded.AppModule;
 }
 
+/**
+ * OpenAPI bootstrap only: mint an ephemeral ES256 key when none is supplied or the
+ * supplied private JWK cannot be imported. Production app startup still requires valid
+ * keys via configuration / TokenService and is unchanged by this helper.
+ */
+async function ensureEphemeralSigningKeys(): Promise<void> {
+  const kid = process.env.JWT_ACTIVE_KID ?? 'openapi-key-1';
+  process.env.JWT_ACTIVE_KID = kid;
+
+  const existing = process.env.JWT_PRIVATE_JWK;
+  if (existing && !existing.includes('PLACEHOLDER')) {
+    try {
+      const parsed = JSON.parse(existing) as JWK;
+      await importJWK(parsed, 'ES256');
+      process.env.JWT_PUBLIC_JWKS ??= '{"keys":[]}';
+      return;
+    } catch {
+      // Fall through and mint ephemeral keys for documentation generation only.
+    }
+  }
+
+  const { privateKey, publicKey } = await generateKeyPair('ES256');
+  const privateJwk = await exportJWK(privateKey);
+  const publicJwk = await exportJWK(publicKey);
+  privateJwk.kid = kid;
+  privateJwk.alg = 'ES256';
+  privateJwk.use = 'sig';
+  publicJwk.kid = kid;
+  publicJwk.alg = 'ES256';
+  publicJwk.use = 'sig';
+  process.env.JWT_PRIVATE_JWK = JSON.stringify(privateJwk);
+  process.env.JWT_PUBLIC_JWKS = JSON.stringify({ keys: [publicJwk] });
+}
+
 async function ensureMinimalEnv(): Promise<void> {
   process.env.NODE_ENV ??= 'test';
   process.env.DATABASE_URL ??=
@@ -39,16 +73,7 @@ async function ensureMinimalEnv(): Promise<void> {
   process.env.METRICS_ENABLED ??= 'false';
   process.env.ENABLE_WORKERS ??= 'false';
 
-  if (!process.env.JWT_PRIVATE_JWK || process.env.JWT_PRIVATE_JWK.includes('PLACEHOLDER')) {
-    const { privateKey } = await generateKeyPair('ES256');
-    const privateJwk = await exportJWK(privateKey);
-    privateJwk.kid = process.env.JWT_ACTIVE_KID;
-    privateJwk.alg = 'ES256';
-    privateJwk.use = 'sig';
-    process.env.JWT_PRIVATE_JWK = JSON.stringify(privateJwk);
-  }
-
-  process.env.JWT_PUBLIC_JWKS ??= '{"keys":[]}';
+  await ensureEphemeralSigningKeys();
 }
 
 async function main(): Promise<void> {

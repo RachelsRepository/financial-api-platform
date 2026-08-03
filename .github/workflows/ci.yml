@@ -67,24 +67,41 @@ jobs:
         run: pnpm test:coverage
 
       - name: Generate OpenAPI
-        run: pnpm openapi:generate
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/financial_api?schema=public
           REDIS_URL: redis://localhost:6379
+          KAFKA_ENABLED: 'false'
           TOKEN_ISSUER: https://ci.example.test
           TOKEN_AUDIENCE: financial-api
-          JWT_ACTIVE_KID: ci-key-1
-          JWT_PRIVATE_JWK: '{"kty":"EC","crv":"P-256","d":"ci","x":"ci","y":"ci","kid":"ci-key-1","alg":"ES256","use":"sig"}'
+        run: |
+          set -euo pipefail
+          KEYFILE="$(mktemp)"
+          trap 'rm -f "$KEYFILE"' EXIT
+          # Ephemeral ES256 keys for Nest TokenService bootstrap only — never commit or echo.
+          node scripts/generate-dev-keys.mjs --write-env "$KEYFILE" ci-openapi-1
+          set -a
+          # shellcheck disable=SC1090
+          source "$KEYFILE"
+          set +a
+          pnpm openapi:generate
 
       - name: OpenAPI check
-        run: pnpm openapi:check
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/financial_api?schema=public
           REDIS_URL: redis://localhost:6379
+          KAFKA_ENABLED: 'false'
           TOKEN_ISSUER: https://ci.example.test
           TOKEN_AUDIENCE: financial-api
-          JWT_ACTIVE_KID: ci-key-1
-          JWT_PRIVATE_JWK: '{"kty":"EC","crv":"P-256","d":"ci","x":"ci","y":"ci","kid":"ci-key-1","alg":"ES256","use":"sig"}'
+        run: |
+          set -euo pipefail
+          KEYFILE="$(mktemp)"
+          trap 'rm -f "$KEYFILE"' EXIT
+          node scripts/generate-dev-keys.mjs --write-env "$KEYFILE" ci-openapi-1
+          set -a
+          # shellcheck disable=SC1090
+          source "$KEYFILE"
+          set +a
+          pnpm openapi:check
 
       - name: Attribution scan
         run: pnpm attribution:scan

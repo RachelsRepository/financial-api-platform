@@ -12,13 +12,22 @@ for candidate in /usr/local/bin /opt/homebrew/bin; do
 done
 export PATH
 
+status=0
 if command -v pnpm >/dev/null 2>&1; then
-  pnpm exec lint-staged
+  pnpm exec lint-staged || status=$?
 elif command -v corepack >/dev/null 2>&1; then
-  corepack pnpm exec lint-staged
+  corepack pnpm exec lint-staged || status=$?
 else
   echo "husky pre-commit: pnpm was not found on PATH." >&2
   echo "Install pnpm or enable Corepack (Node 22+: corepack enable), then retry." >&2
   echo "GitHub Desktop and other GUI Git clients may not inherit shell PATH customizations." >&2
   exit 127
+fi
+
+if [ "$status" -ne 0 ]; then
+  if git diff --cached --quiet 2>/dev/null; then
+    echo "husky pre-commit: nothing to commit — staged changes were empty or reverted by formatters." >&2
+    echo "Make a real source change (or stage regenerated OpenAPI/docs that differ from HEAD), then retry." >&2
+  fi
+  exit "$status"
 fi
