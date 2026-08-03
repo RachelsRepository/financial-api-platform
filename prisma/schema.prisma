@@ -1,0 +1,561 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConsentStatus {
+  DRAFT
+  AWAITING_AUTHORIZATION
+  AUTHORIZED
+  ACTIVE
+  REVOKED
+  EXPIRED
+  REJECTED
+}
+
+enum PaymentStatus {
+  CREATED
+  AWAITING_AUTHORIZATION
+  AUTHORIZED
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  SETTLED
+  FAILED
+  CANCELLED
+}
+
+enum OutboxStatus {
+  PENDING
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+}
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+  DENIED
+}
+
+model Institution {
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @unique
+  name         String
+  country      String   @db.Char(2)
+  providerCode String   @map("provider_code")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  users    User[]
+  accounts Account[]
+  consents Consent[]
+  payments Payment[]
+
+  @@map("institutions")
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  externalSubject String   @unique @map("external_subject")
+  emailHash       String   @map("email_hash")
+  displayName     String   @map("display_name")
+  institutionId   String   @map("institution_id") @db.Uuid
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  institution         Institution          @relation(fields: [institutionId], references: [id])
+  accounts            Account[]
+  consents            Consent[]
+  authorizationCodes  AuthorizationCode[]
+  refreshTokenFamilies RefreshTokenFamily[]
+  payments            Payment[]
+
+  @@index([institutionId])
+  @@map("users")
+}
+
+model ClientApplication {
+  id                      String   @id @default(uuid()) @db.Uuid
+  clientId                String   @unique @map("client_id")
+  name                    String
+  clientSecretHash        String?  @map("client_secret_hash")
+  grantTypes              String[] @map("grant_types")
+  allowedScopes           String[] @map("allowed_scopes")
+  tokenEndpointAuthMethod String   @default("client_secret_basic") @map("token_endpoint_auth_method")
+  requirePkce             Boolean  @default(true) @map("require_pkce")
+  requireMtls             Boolean  @default(false) @map("require_mtls")
+  isConfidential          Boolean  @default(true) @map("is_confidential")
+  isActive                Boolean  @default(true) @map("is_active")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  redirectUris         ClientRedirectUri[]
+  consents             Consent[]
+  authorizationRequests AuthorizationRequest[]
+  authorizationCodes   AuthorizationCode[]
+  refreshTokenFamilies RefreshTokenFamily[]
+  payments             Payment[]
+  idempotencyRecords   IdempotencyRecord[]
+
+  @@map("client_applications")
+}
+
+model ClientRedirectUri {
+  id       String @id @default(uuid()) @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  uri      String
+
+  client ClientApplication @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, uri])
+  @@map("client_redirect_uris")
+}
+
+model SigningKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  kid         String    @unique
+  algorithm   String
+  publicJwk   Json      @map("public_jwk")
+  privateJwkEncrypted String @map("private_jwk_encrypted")
+  isActive    Boolean   @default(false) @map("is_active")
+  activatedAt DateTime? @map("activated_at") @db.Timestamptz(3)
+  retiredAt   DateTime? @map("retired_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([isActive])
+  @@map("signing_keys")
+}
+
+model Account {
+  id            String   @id @default(uuid()) @db.Uuid
+  institutionId String   @map("institution_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  accountType   String   @map("account_type")
+  currency      String   @db.Char(3)
+  displayName   String   @map("display_name")
+  maskedNumber  String   @map("masked_number")
+  status        String   @default("active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  institution   Institution      @relation(fields: [institutionId], references: [id])
+  user          User             @relation(fields: [userId], references: [id])
+  balances      AccountBalance[]
+  transactions  AccountTransaction[]
+  beneficiaries Beneficiary[]
+  consentAccounts ConsentAccount[]
+  payments      Payment[]
+
+  @@index([userId])
+  @@index([institutionId])
+  @@map("accounts")
+}
+
+model AccountBalance {
+  id          String   @id @default(uuid()) @db.Uuid
+  accountId   String   @map("account_id") @db.Uuid
+  balanceType String   @map("balance_type")
+  amountMinor BigInt   @map("amount_minor")
+  currency    String   @db.Char(3)
+  creditDebit String   @default("credit") @map("credit_debit")
+  asOf        DateTime @map("as_of") @db.Timestamptz(3)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, balanceType])
+  @@map("account_balances")
+}
+
+model AccountTransaction {
+  id               String   @id @default(uuid()) @db.Uuid
+  accountId        String   @map("account_id") @db.Uuid
+  amountMinor      BigInt   @map("amount_minor")
+  currency         String   @db.Char(3)
+  bookingDate      DateTime @map("booking_date") @db.Timestamptz(3)
+  valueDate        DateTime @map("value_date") @db.Timestamptz(3)
+  creditDebit      String   @map("credit_debit")
+  description      String
+  counterpartyName String?  @map("counterparty_name")
+  status           String   @default("booked")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, bookingDate(sort: Desc), id(sort: Desc)])
+  @@map("account_transactions")
+}
+
+model Beneficiary {
+  id              String   @id @default(uuid()) @db.Uuid
+  accountId       String   @map("account_id") @db.Uuid
+  name            String
+  accountRefMasked String  @map("account_ref_masked")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("beneficiaries")
+}
+
+model Consent {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  clientId      String        @map("client_id") @db.Uuid
+  institutionId String        @map("institution_id") @db.Uuid
+  purpose       String
+  status        ConsentStatus @default(DRAFT)
+  version       Int           @default(1)
+  expiresAt     DateTime      @map("expires_at") @db.Timestamptz(3)
+  authorizedAt  DateTime?     @map("authorized_at") @db.Timestamptz(3)
+  activatedAt   DateTime?     @map("activated_at") @db.Timestamptz(3)
+  revokedAt     DateTime?     @map("revoked_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                   @relation(fields: [userId], references: [id])
+  client       ClientApplication      @relation(fields: [clientId], references: [id])
+  institution  Institution            @relation(fields: [institutionId], references: [id])
+  accounts     ConsentAccount[]
+  scopes       ConsentScopeGrant[]
+  authCodes    AuthorizationCode[]
+  authRequests AuthorizationRequest[]
+  tokenFamilies RefreshTokenFamily[]
+  payments     Payment[]
+
+  @@index([userId, status])
+  @@index([clientId, status])
+  @@index([status, expiresAt])
+  @@map("consents")
+}
+
+model ConsentAccount {
+  consentId String @map("consent_id") @db.Uuid
+  accountId String @map("account_id") @db.Uuid
+
+  consent Consent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@id([consentId, accountId])
+  @@map("consent_accounts")
+}
+
+model ConsentScopeGrant {
+  id        String @id @default(uuid()) @db.Uuid
+  consentId String @map("consent_id") @db.Uuid
+  scope     String
+  granted   Boolean @default(false)
+
+  consent Consent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+
+  @@unique([consentId, scope])
+  @@map("consent_scope_grants")
+}
+
+model AuthorizationRequest {
+  id                  String    @id @default(uuid()) @db.Uuid
+  clientId            String    @map("client_id") @db.Uuid
+  consentId           String?   @map("consent_id") @db.Uuid
+  redirectUri         String    @map("redirect_uri")
+  scopes              String[]
+  state               String
+  nonce               String?
+  codeChallenge       String    @map("code_challenge")
+  codeChallengeMethod String    @default("S256") @map("code_challenge_method")
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt          DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client  ClientApplication @relation(fields: [clientId], references: [id])
+  consent Consent?          @relation(fields: [consentId], references: [id])
+
+  @@index([expiresAt])
+  @@map("authorization_requests")
+}
+
+model AuthorizationCode {
+  id                  String    @id @default(uuid()) @db.Uuid
+  codeHash            String    @unique @map("code_hash")
+  clientId            String    @map("client_id") @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  consentId           String    @map("consent_id") @db.Uuid
+  redirectUri         String    @map("redirect_uri")
+  scopes              String[]
+  codeChallenge       String    @map("code_challenge")
+  codeChallengeMethod String    @map("code_challenge_method")
+  nonce               String?
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt              DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client  ClientApplication @relation(fields: [clientId], references: [id])
+  user    User              @relation(fields: [userId], references: [id])
+  consent Consent           @relation(fields: [consentId], references: [id])
+
+  @@index([expiresAt])
+  @@map("authorization_codes")
+}
+
+model RefreshTokenFamily {
+  id               String    @id @default(uuid()) @db.Uuid
+  clientId         String    @map("client_id") @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  consentId        String    @map("consent_id") @db.Uuid
+  currentTokenHash String    @map("current_token_hash")
+  scopes           String[]
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  reuseDetectedAt  DateTime? @map("reuse_detected_at") @db.Timestamptz(3)
+  generation       Int       @default(1)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  client  ClientApplication @relation(fields: [clientId], references: [id])
+  user    User              @relation(fields: [userId], references: [id])
+  consent Consent           @relation(fields: [consentId], references: [id])
+  tokens  RefreshToken[]
+
+  @@index([consentId])
+  @@index([currentTokenHash])
+  @@map("refresh_token_families")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  generation Int
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  family RefreshTokenFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model AccessTokenRecord {
+  id          String    @id @default(uuid()) @db.Uuid
+  jti         String    @unique
+  clientId    String    @map("client_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  consentId   String    @map("consent_id") @db.Uuid
+  scopes      String[]
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([consentId])
+  @@index([expiresAt])
+  @@map("access_token_records")
+}
+
+model Payment {
+  id                  String        @id @default(uuid()) @db.Uuid
+  consentId           String        @map("consent_id") @db.Uuid
+  clientId            String        @map("client_id") @db.Uuid
+  institutionId       String        @map("institution_id") @db.Uuid
+  userId              String        @map("user_id") @db.Uuid
+  sourceAccountId     String        @map("source_account_id") @db.Uuid
+  amountMinor         BigInt        @map("amount_minor")
+  currency            String        @db.Char(3)
+  creditorName        String        @map("creditor_name")
+  creditorAccountRef  String        @map("creditor_account_ref")
+  reference           String
+  status              PaymentStatus @default(CREATED)
+  providerCode        String        @map("provider_code")
+  providerPaymentId   String?       @map("provider_payment_id")
+  idempotencyKey      String?       @map("idempotency_key")
+  failureReason       String?       @map("failure_reason")
+  version             Int           @default(1)
+  authorizedAt        DateTime?     @map("authorized_at") @db.Timestamptz(3)
+  submittedAt         DateTime?     @map("submitted_at") @db.Timestamptz(3)
+  settledAt           DateTime?     @map("settled_at") @db.Timestamptz(3)
+  cancelledAt         DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  consent       Consent               @relation(fields: [consentId], references: [id])
+  client        ClientApplication     @relation(fields: [clientId], references: [id])
+  institution   Institution           @relation(fields: [institutionId], references: [id])
+  user          User                  @relation(fields: [userId], references: [id])
+  sourceAccount Account               @relation(fields: [sourceAccountId], references: [id])
+  statusHistory PaymentStatusHistory[]
+  providerOps   ProviderOperation[]
+
+  @@unique([clientId, idempotencyKey])
+  @@index([status])
+  @@index([providerPaymentId])
+  @@map("payments")
+}
+
+model PaymentStatusHistory {
+  id         String        @id @default(uuid()) @db.Uuid
+  paymentId  String        @map("payment_id") @db.Uuid
+  fromStatus PaymentStatus? @map("from_status")
+  toStatus   PaymentStatus @map("to_status")
+  reason     String?
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@map("payment_status_history")
+}
+
+model ProviderOperation {
+  id                String   @id @default(uuid()) @db.Uuid
+  paymentId         String   @map("payment_id") @db.Uuid
+  providerCode      String   @map("provider_code")
+  operationType     String   @map("operation_type")
+  requestFingerprint String  @map("request_fingerprint")
+  responseCode      String?  @map("response_code")
+  providerRef       String?  @map("provider_ref")
+  success           Boolean
+  durationMs        Int      @map("duration_ms")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("provider_operations")
+}
+
+model ProviderCallback {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerCode    String   @map("provider_code")
+  providerEventId String   @map("provider_event_id")
+  paymentId       String?  @map("payment_id") @db.Uuid
+  payloadHash     String   @map("payload_hash")
+  signatureValid  Boolean  @map("signature_valid")
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([providerCode, providerEventId])
+  @@map("provider_callbacks")
+}
+
+model WebhookReceipt {
+  id           String   @id @default(uuid()) @db.Uuid
+  providerCode String   @map("provider_code")
+  receiptHash  String   @unique @map("receipt_hash")
+  timestampHeader String @map("timestamp_header")
+  accepted     Boolean
+  reason       String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("webhook_receipts")
+}
+
+model IdempotencyRecord {
+  id           String   @id @default(uuid()) @db.Uuid
+  clientId     String   @map("client_id") @db.Uuid
+  key          String
+  requestHash  String   @map("request_hash")
+  responseCode Int      @map("response_code")
+  responseBody Json     @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(3)
+
+  client ClientApplication @relation(fields: [clientId], references: [id])
+
+  @@unique([clientId, key])
+  @@map("idempotency_records")
+}
+
+model OutboxEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  aggregateId   String       @map("aggregate_id") @db.Uuid
+  aggregateType String       @map("aggregate_type")
+  eventType     String       @map("event_type")
+  version       Int          @default(1)
+  payload       Json
+  correlationId String?      @map("correlation_id")
+  causationId   String?      @map("causation_id")
+  producer      String
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  nextAttemptAt DateTime     @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedAt      DateTime?    @map("locked_at") @db.Timestamptz(3)
+  lockedBy      String?      @map("locked_by")
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(3)
+  lastError     String?      @map("last_error")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([status, nextAttemptAt])
+  @@map("outbox_events")
+}
+
+model ProcessedEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventId     String   @unique @map("event_id") @db.Uuid
+  consumer    String
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(3)
+
+  @@unique([eventId, consumer])
+  @@map("processed_events")
+}
+
+model DeadLetterRecord {
+  id            String   @id @default(uuid()) @db.Uuid
+  sourceEventId String   @map("source_event_id") @db.Uuid
+  eventType     String   @map("event_type")
+  payload       Json
+  errorMessage  String   @map("error_message")
+  attempts      Int
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  replayedAt    DateTime? @map("replayed_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("dead_letter_records")
+}
+
+model AuditEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  eventType     String       @map("event_type")
+  actorType     String       @map("actor_type")
+  actorId       String?      @map("actor_id")
+  subjectId     String?      @map("subject_id")
+  clientId      String?      @map("client_id")
+  institutionId String?      @map("institution_id")
+  correlationId String?      @map("correlation_id")
+  outcome       AuditOutcome
+  reasonCode    String?      @map("reason_code")
+  metadata      Json         @default("{}")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([eventType, createdAt])
+  @@index([correlationId])
+  @@map("audit_events")
+}
+
+model ReconciliationRun {
+  id          String   @id @default(uuid()) @db.Uuid
+  runType     String   @map("run_type")
+  startedAt   DateTime @default(now()) @map("started_at") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  status      String
+  summary     Json     @default("{}")
+
+  discrepancies ReconciliationDiscrepancy[]
+
+  @@map("reconciliation_runs")
+}
+
+model ReconciliationDiscrepancy {
+  id        String   @id @default(uuid()) @db.Uuid
+  runId     String   @map("run_id") @db.Uuid
+  entityType String  @map("entity_type")
+  entityId  String   @map("entity_id")
+  detail    String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  run ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("reconciliation_discrepancies")
+}

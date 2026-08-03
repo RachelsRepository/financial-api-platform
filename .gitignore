@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.docker
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local editor/OS backups (do not use broad *2 patterns)
+*.bak
+*.tmp
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Test / temp
+.tmp/
+.temp/
+test-results/
+
+# Terraform
+terraform/**/.terraform/
+terraform/**/*.tfstate*
+terraform/**/*.tfvars
+!terraform/**/*.tfvars.example
+crash.log
+override.tf
+
+# OpenAPI generated check artifacts
+openapi/.tmp/
+
+# Husky
+.husky/_/

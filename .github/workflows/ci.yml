@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack and install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Verify lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm prisma:generate
+
+      - name: Prisma validate
+        run: pnpm prisma:validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/financial_api?schema=public
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Dependency cruiser
+        run: pnpm architecture
+
+      - name: Unit tests with coverage
+        run: pnpm test:coverage
+
+      - name: Generate OpenAPI
+        run: pnpm openapi:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/financial_api?schema=public
+          REDIS_URL: redis://localhost:6379
+          TOKEN_ISSUER: https://ci.example.test
+          TOKEN_AUDIENCE: financial-api
+          JWT_ACTIVE_KID: ci-key-1
+          JWT_PRIVATE_JWK: '{"kty":"EC","crv":"P-256","d":"ci","x":"ci","y":"ci","kid":"ci-key-1","alg":"ES256","use":"sig"}'
+
+      - name: OpenAPI check
+        run: pnpm openapi:check
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/financial_api?schema=public
+          REDIS_URL: redis://localhost:6379
+          TOKEN_ISSUER: https://ci.example.test
+          TOKEN_AUDIENCE: financial-api
+          JWT_ACTIVE_KID: ci-key-1
+          JWT_PRIVATE_JWK: '{"kty":"EC","crv":"P-256","d":"ci","x":"ci","y":"ci","kid":"ci-key-1","alg":"ES256","use":"sig"}'
+
+      - name: Attribution scan
+        run: pnpm attribution:scan
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: financial-api-platform:ci
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive terraform
+
+      - name: Terraform validate
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate

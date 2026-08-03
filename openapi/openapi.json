@@ -1,0 +1,1515 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": ["Health"]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Readiness probe with dependency checks",
+        "tags": ["Health"]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_detailed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": ["status"],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Detailed health status",
+        "tags": ["Health"]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Returns process and application metrics in Prometheus text exposition format. This endpoint is unauthenticated at the application layer; in production it should normally be restricted by infrastructure or network policy (private scrape network, ingress allowlists, or a sidecar).",
+        "operationId": "MetricsController_metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Prometheus metrics snapshot",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "# HELP financial_api_process_cpu_user_seconds_total Total user CPU time spent in seconds.\n"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Prometheus metrics scrape endpoint",
+        "tags": ["Observability"]
+      }
+    },
+    "/api/v1/institutions": {
+      "get": {
+        "operationId": "InstitutionsController_list",
+        "parameters": [
+          {
+            "name": "country",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "GB",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List active financial institutions",
+        "tags": ["Institutions"]
+      }
+    },
+    "/api/v1/accounts": {
+      "get": {
+        "operationId": "AccountsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List authorized accounts",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/v1/accounts/{accountId}": {
+      "get": {
+        "operationId": "AccountsController_getOne",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get account details",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/v1/accounts/{accountId}/balances": {
+      "get": {
+        "operationId": "AccountsController_balances",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get account balances",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/v1/accounts/{accountId}/transactions": {
+      "get": {
+        "operationId": "AccountsController_transactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque pagination cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List account transactions",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/v1/accounts/{accountId}/beneficiaries": {
+      "get": {
+        "operationId": "AccountsController_beneficiaries",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List account beneficiaries",
+        "tags": ["Accounts"]
+      }
+    },
+    "/api/v1/payments": {
+      "post": {
+        "operationId": "PaymentsController_create",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "description": "Unique key for idempotent payment creation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a payment",
+        "tags": ["Payments"]
+      }
+    },
+    "/api/v1/payments/{paymentId}/authorize": {
+      "post": {
+        "operationId": "PaymentsController_authorize",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizePaymentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Authorize a payment for submission",
+        "tags": ["Payments"]
+      }
+    },
+    "/api/v1/payments/{paymentId}/submit": {
+      "post": {
+        "operationId": "PaymentsController_submit",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitPaymentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit an authorized payment to the provider",
+        "tags": ["Payments"]
+      }
+    },
+    "/api/v1/payments/{paymentId}": {
+      "get": {
+        "operationId": "PaymentsController_get",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get payment details",
+        "tags": ["Payments"]
+      }
+    },
+    "/api/v1/payments/{paymentId}/cancel": {
+      "post": {
+        "operationId": "PaymentsController_cancel",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPaymentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a payment",
+        "tags": ["Payments"]
+      }
+    },
+    "/api/v1/consents": {
+      "post": {
+        "operationId": "ConsentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConsentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a consent request",
+        "tags": ["Consents"]
+      }
+    },
+    "/api/v1/consents/{consentId}/authorize": {
+      "post": {
+        "operationId": "ConsentsController_authorize",
+        "parameters": [
+          {
+            "name": "consentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeConsentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Authorize a consent with account and scope selection",
+        "tags": ["Consents"]
+      }
+    },
+    "/api/v1/consents/{consentId}/activate": {
+      "post": {
+        "operationId": "ConsentsController_activate",
+        "parameters": [
+          {
+            "name": "consentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateConsentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Activate an authorized consent",
+        "tags": ["Consents"]
+      }
+    },
+    "/api/v1/consents/{consentId}/revoke": {
+      "post": {
+        "operationId": "ConsentsController_revoke",
+        "parameters": [
+          {
+            "name": "consentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeConsentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke an active consent",
+        "tags": ["Consents"]
+      }
+    },
+    "/api/v1/consents/{consentId}": {
+      "get": {
+        "operationId": "ConsentsController_get",
+        "parameters": [
+          {
+            "name": "consentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get consent details",
+        "tags": ["Consents"]
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "operationId": "OAuthController_authorize",
+        "parameters": [
+          {
+            "name": "client_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "client-id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "https://app.example.com/callback",
+              "type": "string"
+            }
+          },
+          {
+            "name": "response_type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "code",
+              "enum": ["code"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "accounts:read openid offline_access",
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "random-state-value",
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": ["S256"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "nonce",
+            "required": false,
+            "in": "query",
+            "description": "OIDC nonce bound into the ID token when openid is requested",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "institution_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "purpose",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minLength": 3,
+              "example": "Account aggregation",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "description": "End-to-end correlation identifier",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create an OAuth 2.1 authorization request (consent bootstrap)",
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "OAuthController_token",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Exchange authorization code or refresh token",
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "operationId": "OAuthController_revoke",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthRevokeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Revoke an access or refresh token",
+        "tags": ["OAuth"]
+      }
+    },
+    "/oauth/introspect": {
+      "post": {
+        "operationId": "OAuthController_introspect",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthIntrospectRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Introspect token active state and metadata",
+        "tags": ["OAuth"]
+      }
+    },
+    "/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "OidcController_discovery",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "OpenID Provider configuration",
+        "tags": ["OpenID Connect"]
+      }
+    },
+    "/jwks": {
+      "get": {
+        "operationId": "OidcController_jwks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "JSON Web Key Set",
+        "tags": ["OpenID Connect"]
+      }
+    },
+    "/userinfo": {
+      "get": {
+        "operationId": "OidcController_userinfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "OpenID Connect UserInfo (optional)",
+        "tags": ["OpenID Connect"]
+      }
+    },
+    "/api/v1/webhooks/{providerCode}": {
+      "post": {
+        "operationId": "WebhooksController_handleProviderCallback",
+        "parameters": [
+          {
+            "name": "providerCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Receive provider payment status callbacks",
+        "tags": ["Webhooks"]
+      }
+    }
+  },
+  "info": {
+    "title": "Financial API Platform",
+    "description": "Secure financial APIs with OAuth 2.1-aligned authorization patterns, OpenID Connect, and consent management",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "OAuth 2.1 access token"
+      },
+      "idempotency": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-idempotency-key",
+        "description": "Idempotency key for safe payment retries"
+      },
+      "correlation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-correlation-id",
+        "description": "End-to-end request correlation identifier"
+      }
+    },
+    "schemas": {
+      "CreatePaymentRequestDto": {
+        "type": "object",
+        "properties": {
+          "sourceAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountMinor": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1250,
+            "description": "Amount in minor units (e.g. cents)"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD",
+            "enum": ["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]
+          },
+          "creditorName": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Acme Utilities"
+          },
+          "creditorAccountRef": {
+            "type": "string",
+            "minLength": 1,
+            "example": "GB29NWBK60161331926819"
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Invoice 1042"
+          }
+        },
+        "required": [
+          "sourceAccountId",
+          "amountMinor",
+          "currency",
+          "creditorName",
+          "creditorAccountRef",
+          "reference"
+        ]
+      },
+      "AuthorizePaymentRequestDto": {
+        "type": "object",
+        "properties": {
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["actorUserId"]
+      },
+      "SubmitPaymentRequestDto": {
+        "type": "object",
+        "properties": {
+          "actorClientId": {
+            "type": "string",
+            "description": "Defaults to authenticated client"
+          }
+        }
+      },
+      "CancelPaymentRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateConsentRequestDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestedScopes": {
+            "type": "string",
+            "example": "accounts:read balances:read payments:write"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 3,
+            "example": "Personal finance aggregation"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "clientId",
+          "institutionId",
+          "requestedScopes",
+          "purpose",
+          "expiresAt"
+        ]
+      },
+      "AuthorizeConsentRequestDto": {
+        "type": "object",
+        "properties": {
+          "accountIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "grantedScopes": {
+            "type": "string",
+            "example": "accounts:read balances:read"
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["accountIds", "grantedScopes", "actorUserId"]
+      },
+      "ActivateConsentRequestDto": {
+        "type": "object",
+        "properties": {
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["actorUserId"]
+      },
+      "RevokeConsentRequestDto": {
+        "type": "object",
+        "properties": {
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["actorUserId"]
+      },
+      "OAuthTokenRequestDto": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": ["authorization_code", "refresh_token"]
+          },
+          "client_id": {
+            "type": "string",
+            "example": "client-id"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "code_verifier": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          }
+        },
+        "required": ["grant_type", "client_id"]
+      },
+      "OAuthRevokeRequestDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "token_type_hint": {
+            "type": "string",
+            "enum": ["access_token", "refresh_token"]
+          },
+          "client_id": {
+            "type": "string"
+          }
+        },
+        "required": ["token", "client_id"]
+      },
+      "OAuthIntrospectRequestDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          }
+        },
+        "required": ["token", "client_id"]
+      }
+    }
+  }
+}

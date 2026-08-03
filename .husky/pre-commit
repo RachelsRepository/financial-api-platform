@@ -1,0 +1,24 @@
+# Husky v9+: no legacy husky.sh sourcing.
+# GUI clients (GitHub Desktop) often use a minimal PATH without Node toolchain bins.
+for candidate in /usr/local/bin /opt/homebrew/bin; do
+  case ":$PATH:" in
+    *":$candidate:"*) ;;
+    *)
+      if [ -d "$candidate" ]; then
+        PATH="$candidate:$PATH"
+      fi
+      ;;
+  esac
+done
+export PATH
+
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm exec lint-staged
+elif command -v corepack >/dev/null 2>&1; then
+  corepack pnpm exec lint-staged
+else
+  echo "husky pre-commit: pnpm was not found on PATH." >&2
+  echo "Install pnpm or enable Corepack (Node 22+: corepack enable), then retry." >&2
+  echo "GitHub Desktop and other GUI Git clients may not inherit shell PATH customizations." >&2
+  exit 127
+fi
