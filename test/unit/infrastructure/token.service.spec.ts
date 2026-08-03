@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { exportJWK, generateKeyPair } from 'jose';
+import { exportJWK, generateKeyPair, type JWK } from 'jose';
 import { TokenService } from '../../../src/infrastructure/identity/token.service';
 
 describe('TokenService', () => {
-  let privateJwk: Record<string, unknown>;
+  let privateJwk: JWK;
   const issuer = 'https://auth.example.test';
   const audience = 'financial-api';
 
@@ -20,7 +20,7 @@ describe('TokenService', () => {
       accessTokenTtlSeconds: 300,
       clockSkewSeconds: 30,
       activeKid: 'test-key-1',
-      privateJwk: privateJwk as never,
+      privateJwk: privateJwk,
     });
     await service.initialize();
     return service;
@@ -60,7 +60,7 @@ describe('TokenService', () => {
       accessTokenTtlSeconds: 300,
       clockSkewSeconds: 30,
       activeKid: 'test-key-1',
-      privateJwk: privateJwk as never,
+      privateJwk: privateJwk,
     });
     await wrongAudienceService.initialize();
 
@@ -81,7 +81,7 @@ describe('TokenService', () => {
       accessTokenTtlSeconds: 300,
       clockSkewSeconds: 30,
       activeKid: 'test-key-1',
-      privateJwk: privateJwk as never,
+      privateJwk: privateJwk,
     });
     await wrongIssuerService.initialize();
 
