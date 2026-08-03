@@ -2,7 +2,39 @@
 
 # Financial API Platform
 
-Production-oriented reference platform for secure financial APIs: OAuth 2.1-aligned authorization, OpenID Connect, consent-bound access, payment initiation, provider integrations, and FAPI 2.0-aligned security patterns. This project is **not certified** against OAuth, FAPI, Open Banking, or PSD2 conformance programs.
+Reference implementation for secure financial APIs: OAuth 2.1-aligned authorization, OpenID Connect, consent-bound access, payment initiation, provider integrations, and FAPI-inspired security patterns. This project is **not certified** against OAuth, FAPI, Open Banking, or PSD2 conformance programs.
+
+## Architecture at a Glance
+
+```mermaid
+flowchart TD
+  Client[Client Application]
+  OAuth[OAuth 2.1 + PKCE]
+  API[NestJS + Fastify API]
+  App[Application Layer]
+  Domain[Domain Layer]
+  DB[(PostgreSQL)]
+  Redis[(Redis)]
+  Kafka[(Kafka)]
+  Providers[Provider Adapters]
+  Worker[Background Workers]
+
+  Client --> OAuth
+  OAuth --> API
+  API --> App
+  App --> Domain
+
+  App --> DB
+  App --> Redis
+  App --> Kafka
+  App --> Providers
+
+  Kafka --> Worker
+  Worker --> Providers
+  Worker --> DB
+```
+
+Request path: client → OAuth/PKCE → API → application use cases → domain rules, with persistence, cache, messaging, and providers behind application ports. Workers consume published events for outbox relay, reconciliation, and related background jobs. See [Architecture overview](#architecture-overview) and [docs/architecture.md](docs/architecture.md) for layer boundaries.
 
 ## Features
 
@@ -12,7 +44,7 @@ Production-oriented reference platform for secure financial APIs: OAuth 2.1-alig
 - **Payment initiation** — idempotent payment creation, provider abstraction, webhook verification
 - **Transactional outbox** — reliable domain event publishing to Kafka
 - **Observability** — structured logging, Prometheus `GET /metrics`, OpenTelemetry tracing
-- **Security controls** — production guard, log redaction, rate limiting, webhook verification, edge-header mTLS when enabled
+- **Security controls** — startup configuration validation, log redaction, rate limiting, signed webhook verification, trusted-host enforcement, and optional edge-header mTLS enforcement
 
 ## Stack
 
@@ -33,23 +65,37 @@ Production-oriented reference platform for secure financial APIs: OAuth 2.1-alig
 
 - Node.js 22+
 - pnpm 9.15.4 (via Corepack) — **pnpm only** (`npm ci` is blocked by `preinstall`)
-- Docker (optional, for full stack)
+- Docker Desktop or compatible engine (for Compose)
 
-### Local development
+### Quick start with Docker
 
 ```bash
 corepack enable
 corepack prepare pnpm@9.15.4 --activate
-make install
-cp .env.example .env
-node scripts/generate-dev-keys.mjs           # print JWT_* lines; merge into .env
-make docker-env                              # writes gitignored .env.docker for Compose
-make docker-up                               # postgres, redis, kafka, migrate, api, worker
-make docker-smoke                            # optional representative HTTP smoke against :3000
-make dev                                     # local Nest process (requires local deps + .env)
+pnpm install --frozen-lockfile
+make docker-env
+make docker-up
+make docker-smoke
 ```
 
-Signing keys for Compose are **not** hardcoded. `scripts/ensure-compose-env.mjs` generates valid development ES256 JWKs into `.env.docker` (gitignored). Production must supply real keys and fails closed when they are missing. Public keys are exposed at `GET /jwks` (not `/.well-known/jwks.json`).
+`make docker-env` writes gitignored `.env.docker` with development ES256 JWKs via `scripts/ensure-compose-env.mjs` (keys are not hardcoded). `make docker-up` starts PostgreSQL, Redis, Kafka, migrate/seed, API, and worker. `make docker-smoke` runs the representative HTTP flow against `http://127.0.0.1:3000`. Public signing keys are exposed at `GET /jwks` (not `/.well-known/jwks.json`).
+
+### Local development
+
+For a Nest process on the host (still typically backed by Compose dependencies):
+
+```bash
+corepack enable
+corepack prepare pnpm@9.15.4 --activate
+pnpm install --frozen-lockfile
+cp .env.example .env
+node scripts/generate-dev-keys.mjs    # print JWT_* lines; merge into .env
+make docker-env
+make docker-up                        # dependencies + reference API/worker stack
+make dev                              # local Nest API (requires local .env)
+```
+
+Production deployments must supply real signing keys and fail closed when they are missing.
 
 ### Health
 
@@ -69,6 +115,7 @@ make lint              # ESLint
 make migrate           # prisma migrate deploy
 make openapi-generate  # regenerate openapi/openapi.json
 make attribution       # scan for AI tool attribution strings
+make docker-down       # stop Compose services
 ```
 
 ## Architecture overview
@@ -161,9 +208,11 @@ pnpm test:coverage        # domain coverage thresholds in vitest.config.ts
 
 ### Docker runtime smoke
 
+Prefer the Quick start with Docker path (`make docker-smoke`). Equivalent:
+
 ```bash
 make docker-env
-docker compose up -d --build
+make docker-up
 node scripts/docker-smoke.mjs
 ```
 
